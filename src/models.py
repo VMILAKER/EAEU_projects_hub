@@ -1,7 +1,7 @@
 import uuid
 from enum import Enum
 
-# from pgvector.sqlalchemy import VECTOR
+from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -22,49 +22,19 @@ class CountryTemplates(str, Enum):
     KYRGYZSTAN = 'Кыргызстан'
 
 
-class Middle(Base):
+class Middle_project_participant(Base):
     __tablename__ = 'project_participant_wire'
 
     id = Column(Integer, index=True, primary_key=True)
     project_id = Column(UUID(as_uuid=True), ForeignKey('projects.id'))
     participant_id = Column(UUID(as_uuid=True), ForeignKey('participants.id'))
 
-    # country_id = Column(UUID(as_uuid=True), ForeignKey('countries.id'))
-    country = relationship(
-        'Country', lazy='raise_on_sql')
+class Middle_project_link(Base):
+    __tablename__ = 'project_link_wire'
 
-
-class Project_model(Base):
-    __tablename__ = 'projects'
-
-    id = get_id()
-    name = Column(String, index=True)
-
-    # qualification_id = Column(
-    #     UUID(as_uuid=True), ForeignKey('vkr_qualifications.id'))
-    scope = relationship(
-        'Scope', lazy='raise_on_sql')
-
-    # stage_id = Column(UUID(as_uuid=True), ForeignKey(
-    #         'stages.id'))
-    stage = relationship(
-        'Stage', lazy='raise_on_sql')
-
-    participants = relationship('Participant', secondary='project_participant_wire',
-                                back_populates='project_relation', lazy='raise_on_sql')
-
-    # link_id = Column(UUID(as_uuid=True), ForeignKey(
-    #         'links.id'))
-    links = relationship(
-        'Link', lazy='raise_on_sql')
-
-    description = Column(String)
-    comments = Column(String)
-
-    # key_facts_id = Column(UUID(as_uuid=True), ForeignKey(
-    #         'key_facts.id'))
-    key_facts = relationship(
-        'Key_fact', lazy='raise_on_sql')
+    id = Column(Integer, index=True, primary_key=True)
+    project_id = Column(UUID(as_uuid=True), ForeignKey('projects.id'))
+    link_id = Column(UUID(as_uuid=True), ForeignKey('links.id'))
 
 
 class Scope(Base):
@@ -86,7 +56,13 @@ class Participant(Base):
 
     id = get_id()
     name = Column(String)
+    country_id = Column(
+            UUID(as_uuid=True), ForeignKey('countries.id'))
+    country_relation = relationship(
+        'Country', lazy='raise_on_sql')
 
+    project_participant_relation = relationship('Project', secondary='project_participant_wire',
+                                    back_populates='participant_relation', lazy='raise_on_sql')
 
 class Country(Base):
     __tablename__ = 'countries'
@@ -101,23 +77,46 @@ class Link(Base):
     id = get_id()
     name = Column(String)
 
+    project_link_relation = relationship(
+            'Project', secondary='project_link_wire', back_populates='link_relation' , lazy='raise_on_sql')
 
-class Key_facts(Base):
+
+class Key_fact(Base):
     __tablename__ = 'key_facts'
 
     id = get_id()
-    name = Column(String)
-    # chunks_id = Column(UUID(as_uuid=True), ForeignKey(
-    #         'chunks.id'))
-    chunk = relationship(
-        'Chunk', lazy='raise_on_sql')
+    text = Column(String)
+
+    embedding = Column(VECTOR(384))
+    
+    project_id = Column(UUID(as_uuid=True), ForeignKey(
+            'projects.id'))
 
 
-class Chunk(Base):
-    __tablename__ = 'chunks'
+class Project(Base):
+    __tablename__ = 'projects'
 
     id = get_id()
-    content = Column(String, index=True)
-    # embedding = Column(VECTOR(384))
+    name = Column(String, index=True)
 
-    key_facts_id = Column(UUID(as_uuid=True), ForeignKey('key_facts.id'))
+    scope_id = Column(
+        UUID(as_uuid=True), ForeignKey('scopes.id'))
+    scope_relation = relationship(
+        'Scope', lazy='raise_on_sql')
+
+    stage_id = Column(UUID(as_uuid=True), ForeignKey(
+            'stages.id'))
+    stage_relation = relationship(
+        'Stage', lazy='raise_on_sql')
+
+    participant_relation = relationship('Participant', secondary='project_participant_wire',
+                                back_populates='project_participant_relation', lazy='raise_on_sql')
+
+    link_relation = relationship(
+        'Link', secondary='project_link_wire', back_populates='project_link_relation' , lazy='raise_on_sql')
+
+    description = Column(String)
+
+    key_facts_relation = relationship(
+        'Key_fact', lazy='raise_on_sql')
+

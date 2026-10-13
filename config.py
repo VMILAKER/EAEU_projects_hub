@@ -37,3 +37,39 @@ def get_backend_api_key():
         return os.getenv('INTERNAL_BACKEND_API_KEY')
     else:
         raise ValueError('INTERNAL_BACKEND_API_KEY is not provided')
+
+
+def get_instruction():
+    prompt = os.getenv('INSTRUCTION_PROMPT')
+    if prompt:
+        return prompt
+    else:
+        raise ValueError('No prompt provided')
+
+    
+def create_payload(query:str, text:str):
+    model_name = os.getenv('LLM_NAME')
+    temperature = os.getenv('LLM_TEMPERATURE')
+    if model_name and temperature:
+        return {
+                "model": model_name,
+                "messages":[{
+                    "role": "user",
+                    # "content":  f"{get_instruction()}\n\n \
+                    #                 Sources:{text}\n\n Question:{query}"
+                    "content": f'Extract named entities from text: {query}. If it is a infrastructure (e.g. Electic Line) \
+                    and some actions should be applied (e.g. to renew, to modify) from text find out materials from what object consists of. Answer in Russian. Answer shortly',
+                    },],
+                "stream": False,
+                "tempetature": float(temperature)
+        }
+    else:
+        raise ValueError('No LLM_NAME or LLM_TEMPERATURE provided')
+
+
+def get_ollama_api_url():
+    ollama_port = os.getenv('OLLAMA_PORT')
+    if ollama_port:
+        return f"http://localhost:{ollama_port}/api/chat"
+    else:
+        raise ValueError('No mention about OLLAMA_PORT')

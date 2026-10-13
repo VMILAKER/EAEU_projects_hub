@@ -1,8 +1,11 @@
 fastapi==0.143.0
 openpyxl
+pandas
 pgvector==0.5.1
 python-dotenv==1.2.4
 python-multipart
 psycopg2-binary
+requests
+sentence_transformers
 SQLAlchemy==2.1.4
 uvicorn==0.54.0
