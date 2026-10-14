@@ -6,6 +6,7 @@ python-dotenv==1.2.4
 python-multipart
 psycopg2-binary
 requests
+rank_bm25
 sentence_transformers
 SQLAlchemy==2.1.4
 uvicorn==0.54.0

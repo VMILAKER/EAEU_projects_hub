@@ -1,11 +1,12 @@
 import logging
 import re
+import uuid
 
+import requests
 from fastapi import HTTPException, status
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import and_, select
 from sqlalchemy.orm import joinedload, selectinload
-import requests
 
 import config
 import src.models as Models
@@ -135,13 +136,33 @@ async def upload_projects(file, db):
 
 async def get_projects_by_query(query, k, db):
     try:
-        origins ='rrtrt'
-        messages = config.create_payload(query, origins)
+        results_list = []
+        search_limit = int(config.get_origins_request_limit())
+        emb_query = model.encode(query.lower())
+
+        
+        vec_response = utils.vector_serch(emb_query, search_limit, db)
+        bm25_response = utils.bm25_search(query, search_limit, db)
+
+        results_list.extend(vec_response)
+        results_list.extend(bm25_response)
+        
+        fused = utils.RRF(results_list, search_limit)
+        top = utils.rerank(query, fused, k)
+        logging.info(top)
+        top_req = (
+                select(Models.Project).where(Models.Project.id.in_(top))
+        )
+        context = "\n\n".join(f"[{number}] 'Project name': {item.name}, 'Project description': {item.description}" for number, item in enumerate(db.execute(top_req).scalars().unique().all()))
+        
+        
+        messages = config.create_payload(query, context)
         tags_extraction_request = requests.post(config.get_ollama_api_url(), json=messages)
-        # tags_extraction_request = requests.post(config.get_ollama_api_url(),json=messages)
+
         if tags_extraction_request.status_code == 200:
-            return tags_extraction_request.json()
-        # return tags_extraction_request
+            response = tags_extraction_request.json()
+            return response['message']['content'].replace('\n\n', '').split('\n')
+
          
     except Exception as e:
         raise HTTPException(

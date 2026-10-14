@@ -1,13 +1,19 @@
 import logging
 import re
 from typing import List
+from uuid import UUID
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import func, or_
+from rank_bm25 import BM25Okapi
+from sentence_transformers import CrossEncoder
+from sqlalchemy import and_, func, or_, select
+from sqlalchemy.orm import joinedload, selectinload
 
 import src.models as Models
+from config import get_cross_encoder_name
 
+reranker = CrossEncoder(get_cross_encoder_name())
 logging.getLogger().setLevel(logging.INFO)
 
 
@@ -138,4 +144,52 @@ def count_by_dict_key(data):
                                 final_report_dict[f'Распределение по {key}'][value] +=1
                             final_report_dict[f'Распределение по {key}'] = dict(sorted(final_report_dict[f'Распределение по {key}'].items(), key=lambda x: x[1], reverse=True))
     return final_report_dict
-                            
+
+
+def vector_serch(emb_query, search_limit:int, db):
+    vector_req = (
+        select(Models.Project).join(Models.Project.key_facts_relation)
+        .options( 
+            joinedload(Models.Project.key_facts_relation)
+        ).order_by(Models.Key_fact.embedding.cosine_distance(emb_query)).limit(search_limit)
+    )
+            # vec_response = [
+            #     {
+            #         'project_name': i.name,
+            #         'content': j.text,
+            #         'embedding': j.embedding
+            #     }  for i in db.execute(vector_req).scalars().unique().all() for j in i.key_facts_relation
+            # ]
+    return [{'project_id': str(i.id), 'content': j.text} for i in db.execute(vector_req).scalars().unique().all()  for j in i.key_facts_relation]
+
+
+def bm25_search(query:str, search_limit:int, db):
+    bm25_req = (
+        select(Models.Project).join(Models.Project.key_facts_relation)
+        .options( 
+            joinedload(Models.Project.key_facts_relation)
+        )
+    )
+
+    rows = [{'project_id': str(i.id), 'content': j.text} for i in db.execute(bm25_req).scalars().unique().all() for j in i.key_facts_relation]
+    bm25 = BM25Okapi([r['content'].lower().split() for r in rows])
+    scores = bm25.get_scores(query.lower().split())
+    ranked = sorted(zip(rows, scores), key=lambda x: x[1], reverse=True)
+    return[r for r, _ in ranked[:search_limit]]
+
+    
+def RRF(results_list: list, search_limit: int):
+    scores, docs = {}, {}
+    for rank, results in enumerate(results_list):
+        project_id = results['project_id']
+        content = results['content']
+        scores[project_id] = 1 / (search_limit + rank + 1)
+        docs[project_id] = content
+    return [(i, docs[i]) for i in sorted(scores, key=scores.get, reverse=True)]
+
+
+def rerank(query, candidates, top_n:int):
+    scores = reranker.predict([(query, c[1]) for c in candidates])
+    ranked = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
+    # return [c for c, _ in ranked[:top_n]]
+    return [UUID(c[0]) for c, _ in ranked[:top_n]]               

@@ -3,7 +3,9 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+import logging
 
+logging.getLogger().setLevel(logging.INFO)
 
 def get_database_url():
     empty_entities = []
@@ -50,21 +52,34 @@ def get_instruction():
 def create_payload(query:str, text:str):
     model_name = os.getenv('LLM_NAME')
     temperature = os.getenv('LLM_TEMPERATURE')
-    if model_name and temperature:
-        return {
+    language = os.getenv('ANSWER_LANGUAGE')
+    if model_name and temperature and language:
+        if query and not text:
+            return {
+                    "model": model_name,
+                    "messages":[{
+                        "role": "user",
+                        "content": f'Extract named entities from text: {query}. If it is a infrastructure (e.g. Electic Line) \
+                        and some actions should be applied (e.g. to renew, to modify) from text find out materials from what object consists of. Answer in {language}. Answer shortly',
+                        },],
+                    "stream": False,
+                    "tempetature": float(temperature)
+            }
+        elif query and text:
+            logging.info('text esists')
+            return {
                 "model": model_name,
                 "messages":[{
                     "role": "user",
-                    # "content":  f"{get_instruction()}\n\n \
-                    #                 Sources:{text}\n\n Question:{query}"
-                    "content": f'Extract named entities from text: {query}. If it is a infrastructure (e.g. Electic Line) \
-                    and some actions should be applied (e.g. to renew, to modify) from text find out materials from what object consists of. Answer in Russian. Answer shortly',
+                    "content":  f"{get_instruction()}\n\n \
+                                    Источники:{text}\n\n Вопрос:{query}. Отвечай на {language}"
                     },],
                 "stream": False,
                 "tempetature": float(temperature)
-        }
+            }
+
     else:
-        raise ValueError('No LLM_NAME or LLM_TEMPERATURE provided')
+        raise ValueError('No LLM_NAME or LLM_TEMPERATURE, or ANSWER_LANGUAGE provided')
 
 
 def get_ollama_api_url():
@@ -73,3 +88,19 @@ def get_ollama_api_url():
         return f"http://localhost:{ollama_port}/api/chat"
     else:
         raise ValueError('No mention about OLLAMA_PORT')
+
+
+def get_origins_request_limit():
+    origins_limit = os.getenv('ORIGINS_LIMIT')
+    if origins_limit:
+        return origins_limit
+    else:
+        raise ValueError('ORIGINS_LIMIT is not provided')
+
+
+def get_cross_encoder_name():
+    cross_encoder = os.getenv('CROSS_ENCODER')
+    if cross_encoder:
+        return cross_encoder
+    else:
+        raise ValueError('CROSS_ENCODER is not provided')
