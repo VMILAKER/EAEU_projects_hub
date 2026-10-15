@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -21,7 +21,6 @@ def get_db_sql():
     db = SessionLocal()
     # Base.metadata.drop_all(bind=engine)
     # Base.metadata.create_all(bind=engine)
-    # db.execute(text('CREATE EXTENSION IF NOT EXISTS vector;'))
     try:
         yield db
     except Exception:

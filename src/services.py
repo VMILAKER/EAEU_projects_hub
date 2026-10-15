@@ -1,6 +1,5 @@
 import logging
 import re
-import uuid
 
 import requests
 from fastapi import HTTPException, status
@@ -22,8 +21,8 @@ async def get_projects(project_name, scope, stage, participants, db):
         filter_dict = {}
         for value in [{'project_name': project_name}, {'scope': scope}, {'stage': stage}, {'participants':participants}]:
             if list(value.values())[0]:
-                filter_dict[list(value.keys())[0]] = [str(i.strip()).lower()
-                                        for i in re.split(r',', value[list(value.keys())[0]]) if i]
+                filter_dict[next(iter(value.keys()))] = [str(i.strip()).lower()
+                                        for i in re.split(r',', value[next(iter(value.keys()))]) if i]
         stmt = (
             select(Models.Project).join(Models.Project.scope_relation)
             .join(Models.Project.link_relation).join(Models.Project.key_facts_relation)
@@ -64,32 +63,34 @@ async def upload_projects(file, db):
         processed_df = list(utils.process_data(df))
         duplicate_list =[]
         for data in processed_df:
-            if not db.query(Models.Project.name).filter(Models.Project.name == data['Проект']).one_or_none():
-                if not db.query(Models.Scope.name).filter(Models.Scope.name == data['Направление']).one_or_none() and data['Направление']:
+            name_req = select(Models.Project.name).where(Models.Project.name == data['Проект'])
+            if not db.execute(name_req).scalars().one_or_none():
+                scope_req = select(Models.Scope.name).where(Models.Scope.name == data['Направление'])
+                if not db.execute(scope_req).scalars().one_or_none() and data['Направление']:
                     add_scope = Models.Scope(name=data['Направление'])
                     db.add(add_scope)
                     db.flush()
-                if not db.query(Models.Stage.name).filter(Models.Stage.name == data['Стадия']).one_or_none() and data['Стадия']:
+                stage_req = select(Models.Stage.name).where(Models.Stage.name == data['Стадия'])
+                if not db.execute(stage_req).scalars().one_or_none() and data['Стадия']:
                     add_stage = Models.Stage(name=data['Стадия'])
                     db.add(add_stage)
                     db.flush()
 
-                scope_id_req = db.query(Models.Scope.id).filter(Models.Scope.name == data['Направление']).one_or_none()
-                stage_id_req = db.query(Models.Stage.id).filter(Models.Stage.name == data['Стадия']).one_or_none()
-                project_req = Models.Project(name=data['Проект'], description=' '.join(data['Краткое описание']), stage_id=stage_id_req.id, scope_id=scope_id_req.id)
+                scope_id_req = db.execute(select(Models.Scope.id).where(Models.Scope.name == data['Направление'])).scalars().one_or_none()
+                stage_id_req = db.execute(select(Models.Stage.id).where(Models.Stage.name == data['Стадия'])).scalars().one_or_none()
+                project_req = Models.Project(name=data['Проект'], description=' '.join(data['Краткое описание']), stage_id=stage_id_req, scope_id=scope_id_req)
                 db.add(project_req)
                 db.flush()
                 if data['Ключевые факты']:
                     for fact in data['Ключевые факты']:
-                        logging.info(fact)
                         add_fact = Models.Key_fact(text=fact, embedding=model.encode(fact.lower()),project_id=project_req.id)
                         db.add(add_fact)
                         db.flush()
                 
                 if data['Источник']:
                     for link in data['Источник']:
-                        logging.info(link)
-                        if not db.query(Models.Link.name).filter(Models.Link.name == link).one_or_none():
+                        link_req = select(Models.Link.name).where(Models.Link.name == link)
+                        if not db.execute(link_req).scalars().one_or_none():
                             add_link = Models.Link(name=link)
                             db.add(add_link)
                             db.flush()
@@ -97,33 +98,32 @@ async def upload_projects(file, db):
                             db.add(add_middle_project_link)
                             db.flush()
                         else:
-                            link_id_req = db.query(Models.Link.id).filter(Models.Link.name == link).one_or_none()
-                            add_middle_project_link = Models.Middle_project_link(project_id=project_req.id, link_id=link_id_req.id)
+                            link_id_req = db.execute(select(Models.Link.id).where(Models.Link.name == link)).scalars().one_or_none()
+                            add_middle_project_link = Models.Middle_project_link(project_id=project_req.id, link_id=link_id_req)
                             db.add(add_middle_project_link)
                             db.flush()
                 participants_dict = utils.extract_participant_country(list(data.keys()), data)
-                # logging.info(participants_dict)
                 if participants_dict.keys():
                     for country in participants_dict.keys():
-                        logging.info(country)
-                        if not db.query(Models.Country.name).filter(Models.Country.name == country).one_or_none():
+                        country_req = select(Models.Country.name).where(Models.Country.name == country)
+                        if not db.execute(country_req).scalars().one_or_none():
                             add_country = Models.Country(name=country)
                             db.add(add_country)
                             db.flush()
-                        country_id_req = db.query(Models.Country.id).filter(Models.Country.name == country).one_or_none()
+                        country_id_req = db.execute(select(Models.Country.id).where(Models.Country.name == country)).scalars().one_or_none()
                         if participants_dict[country]:
                             for participant in participants_dict[country]:
-                                logging.info(participant)
-                                if not db.query(Models.Participant.name).filter(Models.Participant.name == participant).one_or_none():
-                                    add_participant = Models.Participant(name=participant, country_id=country_id_req.id)
+                                participant_req = select(Models.Participant.name).where(Models.Participant.name == participant)
+                                if not db.execute(participant_req).scalars().one_or_none():
+                                    add_participant = Models.Participant(name=participant, country_id=country_id_req)
                                     db.add(add_participant)
                                     db.flush()
                                     add_middle_project_participant = Models.Middle_project_participant(project_id=project_req.id, participant_id=add_participant.id)
                                     db.add(add_middle_project_participant)
                                     db.flush()
                                 else:
-                                    participant_id_req = db.query(Models.Participant.id).filter(Models.Participant.name == participant).one_or_none()
-                                    add_middle_project_participant = Models.Middle_project_participant(project_id=project_req.id, participant_id=participant_id_req.id)
+                                    participant_id_req = db.execute(select(Models.Participant.id).where(Models.Participant.name == participant)).scalars().one_or_none()
+                                    add_middle_project_participant = Models.Middle_project_participant(project_id=project_req.id, participant_id=participant_id_req)
                                     db.add(add_middle_project_participant)
                                     db.flush()
                 db.commit()
@@ -133,6 +133,7 @@ async def upload_projects(file, db):
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Sorry, the server is not available. The error is {e}')
+
 
 async def get_projects_by_query(query, k, db):
     try:
@@ -149,7 +150,6 @@ async def get_projects_by_query(query, k, db):
         
         fused = utils.RRF(results_list, search_limit)
         top = utils.rerank(query, fused, k)
-        logging.info(top)
         top_req = (
                 select(Models.Project).where(Models.Project.id.in_(top))
         )

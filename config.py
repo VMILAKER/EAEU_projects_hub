@@ -66,13 +66,12 @@ def create_payload(query:str, text:str):
                     "tempetature": float(temperature)
             }
         elif query and text:
-            logging.info('text esists')
             return {
                 "model": model_name,
                 "messages":[{
                     "role": "user",
                     "content":  f"{get_instruction()}\n\n \
-                                    Источники:{text}\n\n Вопрос:{query}. Отвечай на {language}"
+                                    Origins:{text}\n\n Question:{query}. Always reply in  {language}. Do not TOTALLY use English in your replies"
                     },],
                 "stream": False,
                 "tempetature": float(temperature)
@@ -104,3 +103,17 @@ def get_cross_encoder_name():
         return cross_encoder
     else:
         raise ValueError('CROSS_ENCODER is not provided')
+
+
+def get_statistics_key_template(key):
+    return f'Распределение по {key}'
+
+def get_statistics_form_template(report_dict:dict, key_template: str, value):
+    if not key_template in report_dict:
+        report_dict[key_template] = {}
+    if not value in report_dict[key_template].keys():
+        report_dict[key_template].setdefault(value, 1)
+    else:
+        report_dict[key_template][value] +=1
+    report_dict[key_template] = dict(sorted(report_dict[key_template].items(), key=lambda x: x[1], reverse=True))
+    return report_dict

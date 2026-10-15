@@ -45,7 +45,7 @@ async def post(file: UploadFile = File(...), db: Session = Depends(get_db_sql)):
 
 
 @router.get('/get_projects_by_query', tags=['get_node'])
-async def get_by_query(query: str = 'Создание АЭС', top_K: int = 5, db: Session = Depends(get_db_sql)):
+async def get_by_query(query: str = 'Запуск БелАЭС в 2026-м году', top_K: int = 5, db: Session = Depends(get_db_sql)):
     return await Service.get_projects_by_query(query, top_K, db)
 
 @router.get('/statistics', tags=['statistics'])

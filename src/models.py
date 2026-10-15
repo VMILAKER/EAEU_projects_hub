@@ -2,7 +2,7 @@ import uuid
 from enum import Enum
 
 from pgvector.sqlalchemy import VECTOR
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
