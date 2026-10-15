@@ -22,8 +22,10 @@ def get_database_url():
         name = os.getenv('DB_NAME')
         server = os.getenv('DB_SERVER')
         port = os.getenv('DB_PORT')
+        container_name = os.getenv('DB_CONTAINER_NAME')
 
-        return f'postgresql+psycopg2://{user}:{password}@{server}:{port}/{name}'
+        # return f'postgresql+psycopg2://{user}:{password}@{server}:{port}/{name}'
+        return f'postgresql+psycopg2://{user}:{password}@{container_name}/{name}'
 
 
 def get_sentence_transformer_model_name():
@@ -83,10 +85,11 @@ def create_payload(query:str, text:str):
 
 def get_ollama_api_url():
     ollama_port = os.getenv('OLLAMA_PORT')
-    if ollama_port:
-        return f"http://localhost:{ollama_port}/api/chat"
+    ollama_container_name = os.getenv('OLLAMA_CONTAINER_NAME')
+    if ollama_port and ollama_container_name:
+        return f"http://{ollama_container_name}:11434/api/chat"
     else:
-        raise ValueError('No mention about OLLAMA_PORT')
+        raise ValueError('No mention about OLLAMA_PORT or OLLAMA_CONTAINER_NAME')
 
 
 def get_origins_request_limit():
