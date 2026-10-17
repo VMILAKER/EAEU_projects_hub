@@ -161,7 +161,8 @@ async def get_projects_by_query(query, k, db):
 
         if tags_extraction_request.status_code == 200:
             response = tags_extraction_request.json()
-            return response['message']['content'].replace('\n\n', '').split('\n')
+            logging.info(response['message']['content'])
+            return response['message']['content']
 
          
     except Exception as e:

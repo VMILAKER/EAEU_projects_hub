@@ -1,0 +1,20 @@
+services:
+   frontend-eaeu:
+      container_name: eaeu_frontend
+      build:
+        context: .
+        dockerfile: Dockerfile
+      networks:
+       - eaeu-network
+      ports:
+       - 5175:5173
+      restart: always
+
+networks:
+  eaeu-network:
+    name: eaeu-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.89.0.0/24
+    external: true

@@ -1,19 +1,19 @@
 import uvicorn
 from fastapi import FastAPI
 
-# from config import get_frontend_url
+from config import get_frontend_url
 from src import routers
 
-# from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
 app.include_router(routers.router, prefix='/eaeu_hub')
 
 
-# origins = get_frontend_url()
-# app.add_middleware(CORSMiddleware, allow_origins=origins,
-#                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+origins = get_frontend_url()
+app.add_middleware(CORSMiddleware, allow_origins=origins,
+                   allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
 if __name__ == '__main__':

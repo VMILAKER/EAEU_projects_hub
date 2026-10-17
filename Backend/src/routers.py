@@ -34,17 +34,17 @@ router = APIRouter(
 )
 
 
-@router.get('/get_projects', tags=['get_node'])
+@router.get('/projects', tags=['get_node'])
 async def get(project_name: str = None, scope: str = None, stage: str = None, participants: str = None, db: Session = Depends(get_db_sql)):
     return await Service.get_projects(project_name, scope, stage, participants, db)
 
 
-@router.post('/upload_projects', tags=['upload_node'])
+@router.post('/projects', tags=['upload_node'])
 async def post(file: UploadFile = File(...), db: Session = Depends(get_db_sql)):
     return await Service.upload_projects(file, db)
 
 
-@router.get('/get_projects_by_query', tags=['get_node'])
+@router.get('/projects_by_query', tags=['get_node'])
 async def get_by_query(query: str = 'Запуск БелАЭС в 2026-м году', top_K: int = 5, db: Session = Depends(get_db_sql)):
     return await Service.get_projects_by_query(query, top_K, db)
 

@@ -120,3 +120,12 @@ def get_statistics_form_template(report_dict:dict, key_template: str, value):
         report_dict[key_template][value] +=1
     report_dict[key_template] = dict(sorted(report_dict[key_template].items(), key=lambda x: x[1], reverse=True))
     return report_dict
+    
+def get_frontend_url():
+    frontend_url_internal = os.getenv('INTERNAL_FRONTEND_URL')
+    frontend_url_external = os.getenv('EXTERNAL_FRONTEND_URL')
+    frontend_port = os.getenv('FRONTEND_PORT')
+    if frontend_url_internal and frontend_port and frontend_url_external:
+        return [frontend_url_internal, frontend_url_external, f'172.7.0.1:{frontend_port}', f"http://0.0.0.0:{frontend_port}",f"http://localhost:{frontend_port}"]
+    else:
+        ValueError('frontend_urls or PORT are missing')
