@@ -108,5 +108,8 @@ export function createApi({ apiKey, demo }) {
       body.append('file', file)
       return request('/projects', { apiKey, method: 'POST', body })
     },
+    async getPreloadedData() {
+      return request('/preloaded_data', { apiKey })
+    },
   }
 }

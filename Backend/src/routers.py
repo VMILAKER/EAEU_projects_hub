@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 import config
 import src.services as Service
-from src.database import get_db_sql
+from src.database import get_db_sql, Base, engine
 
 
 async def verify_internal_api_key(
@@ -48,6 +48,22 @@ async def post(file: UploadFile = File(...), db: Session = Depends(get_db_sql)):
 async def get_by_query(query: str = 'Запуск БелАЭС в 2026-м году', top_K: int = 5, db: Session = Depends(get_db_sql)):
     return await Service.get_projects_by_query(query, top_K, db)
 
+
 @router.get('/statistics', tags=['statistics'])
 async def get_statistics(db: Session = Depends(get_db_sql)):
     return await Service.describe_data(db)
+
+
+@router.get('/preloaded_data', tags=['preloaded_data'])
+async def get_preloaded_data(db: Session = Depends(get_db_sql)):
+    return await Service.get_preloaded_data(db)
+
+
+@router.get('/delete', tags=['preloaded_data'])
+async def delete(secret_word: str | None = None):
+    if secret_word == config.get_secret_word():
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        return 'Entire data was deleted'
+    else:
+        return 'No access'

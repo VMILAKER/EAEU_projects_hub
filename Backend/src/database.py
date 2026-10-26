@@ -19,8 +19,6 @@ def get_db_sql():
     """
 
     db = SessionLocal()
-    # Base.metadata.drop_all(bind=engine)
-    # Base.metadata.create_all(bind=engine)
     try:
         yield db
     except Exception:

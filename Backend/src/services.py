@@ -204,3 +204,25 @@ async def describe_data(db):
     except Exception as e:
         raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Sorry, the server is not available. The error is {e}')
+
+
+async def get_preloaded_data(db):
+    try:
+        preloaded_data_request = (db.execute(select(Models.Project)))
+        if preloaded_data_request.scalars().unique().all():
+            return [[{'value': item, 'label': item} for item in (db.execute(select(Models.Project.name))).scalars().unique().all() if item], 
+                    # [item for item in (db.execute(select(Models.GQW_model.reference))).scalars().unique().all() if item], 
+                    [{'value':item, 'label':item} for item in (db.execute(select(Models.Scope.name))).scalars().unique().all() if item], 
+                    [{'value':item, 'label':item} for item in (db.execute(select(Models.Stage.name))).scalars().unique().all() if item], 
+                    [{'value':item, 'label':item} for item in (db.execute(select(Models.Participant.name))).scalars().unique().all() if item], ]
+                    # [{'value':item, 'label':item} for item in (db.execute(select(Models.GQW_tag.tag_name))).scalars().unique().all() if item if item not in ['Нет доступных тэгов', 'There is no text', 'null']]]
+        else:
+            return [[{'value': 'No data', 'label': 'No data'}],
+                    # ['No data',],
+                    [{'value': 'No data', 'label': 'No data'}],
+                    [{'value': 'No data', 'label': 'No data'}],
+                    # [{'value': 'No data', 'label': 'No data'}],
+                    [{'value': 'No data', 'label': 'No data'}]]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Sorry, the server is not available. The error is {e}')
